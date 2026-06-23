@@ -87,9 +87,9 @@ http://localhost:8080/swagger-ui.html
 
 ## 👩‍💻 Developer
 
-Khushi Sethi
+Khushi 
 
-MCA Student | Java Backend Developer
+Java Backend Developer
 
 ---
 
