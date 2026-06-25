@@ -14,7 +14,7 @@ public interface ObjectService {
 	
 	FileMetadata upload(MultipartFile file, String bucketName, String uploadBy);
 	
-//	InputStream download(String metadataId);
+	InputStream download(String metadataId);
 	
 	void delete(String metadataId);
 	
@@ -24,5 +24,5 @@ public interface ObjectService {
 	
 	void move(MoveRequest moveRequest);
 	
-//	void rename(RenameRequest renameRequest);
+	void rename(RenameRequest renameRequest);
 }

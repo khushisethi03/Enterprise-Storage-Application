@@ -1,7 +1,15 @@
 package com.app.controller;
 
+import java.io.InputStream;
 import java.util.List;
 
+import com.app.dto.RenameRequest;
+import com.app.exception.MetadataNotFoundException;
+import com.app.repository.FileMetadataRepository;
+import jakarta.validation.Valid;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,10 +31,12 @@ import com.app.service.ObjectService;
 public class ObjectController {
 
 	private final ObjectService objectService;
+	private final FileMetadataRepository repository;
 
-	public ObjectController(ObjectService objectService) {
+	public ObjectController(ObjectService objectService, FileMetadataRepository repository) {
 		super();
 		this.objectService = objectService;
+		this.repository = repository;
 	}
 
 	@PostMapping("/upload")
@@ -35,7 +45,18 @@ public class ObjectController {
 
 		return objectService.upload(file, bucketName, uploadedBy);
 	}
+	@GetMapping("/download/{id}")
+	public ResponseEntity<InputStreamResource> download(@PathVariable String id) {
 
+		FileMetadata metadata = repository.findById(id).orElseThrow(() -> new MetadataNotFoundException(id));
+
+		InputStream stream = objectService.download(id);
+
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + metadata.getOriginalName() + "\"")
+				.contentType(MediaType.APPLICATION_OCTET_STREAM)
+				.body(new InputStreamResource(stream));
+	}
 	@GetMapping
 	public List<String> listObjects(@RequestParam String bucketName) {
 		return objectService.listObjects(bucketName);
@@ -61,6 +82,10 @@ public class ObjectController {
         objectService.move(request);
         return ResponseEntity.ok("Moved Successfully");
     }
-	
-	
+
+	@PostMapping("/rename")
+	public ResponseEntity<String> rename(@Valid @RequestBody RenameRequest request) {
+		objectService.rename(request);
+		return ResponseEntity.ok("Renamed Successfully");
+	}
 }

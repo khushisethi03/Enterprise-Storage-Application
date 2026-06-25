@@ -1,10 +1,13 @@
 package com.app.serviceIml;
 
+import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.app.dto.RenameRequest;
+import com.app.exception.FileDownloadException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,13 +23,7 @@ import com.app.util.FileStatus;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.*;
 
 @Service
 public class ObjectServiceImpl implements ObjectService{
@@ -84,7 +81,24 @@ public class ObjectServiceImpl implements ObjectService{
 		}
 	
 	}
-	
+
+	@Override
+	public InputStream download(String metadataId) {
+		try {
+			FileMetadata metadata = repository.findById(metadataId).orElseThrow(() -> new MetadataNotFoundException(metadataId));
+
+			GetObjectRequest request = GetObjectRequest.builder().
+					bucket(metadata.getBucketName())
+					.key(metadata.getStoredName())
+					.build();
+
+			return s3Client.getObject(request);
+		}
+		catch (Exception ex) {
+			throw new FileDownloadException(ex.getMessage());
+		}
+	}
+
 	@Override
 	public List<String> listObjects(String bucketName){
 
@@ -156,6 +170,17 @@ public class ObjectServiceImpl implements ObjectService{
         
         repository.save(metaData);
 	
+	}
+	@Override
+	public void rename(RenameRequest request) {
+
+		CopyObjectRequest copyRequest = CopyObjectRequest.builder().sourceBucket(request.getBucketName()).sourceKey(request.getOldName()).destinationBucket(request.getBucketName()).destinationKey(request.getNewName()).build();
+
+		s3Client.copyObject(copyRequest);
+
+		DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(request.getBucketName()).key(request.getOldName()).build();
+
+		s3Client.deleteObject(deleteRequest);
 	}
 	
 }
